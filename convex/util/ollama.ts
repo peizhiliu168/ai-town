@@ -2,7 +2,7 @@ import { Ollama } from 'langchain/llms/ollama';
 import { CreateChatCompletionRequest, retryWithBackoff } from './openai';
 import { IterableReadableStream } from 'langchain/dist/util/stream';
 
-const ollamaModel = process.env.OLLAMA_MODEL || 'llama2';
+const ollamaModel = process.env.OLLAMA_MODEL || 'mistral';
 export const UseOllama = process.env.OLLAMA_HOST !== undefined;
 
 // Overload for non-streaming

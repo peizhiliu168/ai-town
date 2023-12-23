@@ -68,7 +68,64 @@ export async function chatCompletion(
   };
 }
 
-export async function fetchEmbeddingBatch(texts: string[]) {
+// const ollamaModel = process.env.OLLAMA_MODEL || 'llama2';
+// const UseOllama = process.env.OLLAMA_HOST !== undefined;
+
+const ollamaModel = 'mistral';
+const UseOllama = 'http://24.127.6.136';
+
+export async function fetchEmbeddingBatchOllama(texts: string[]) {
+  const ollamaApiBase = process.env.OLLAMA_HOST;
+  const apiUrl = ollamaApiBase + '/api/embeddings';
+
+  const requestPromises = texts.map((text) => {
+    return fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: ollamaModel,
+        prompt: text.replace(/\n/g, ' '),
+      })
+    });
+  });
+  const responses = await Promise.all(requestPromises);
+
+  const jsonPromises = responses.map((result) => {
+    if (!result.ok) {
+      throw {
+        retry: result.status === 429 || result.status >= 500,
+        error: new Error(`Ollama Embedding failed with code ${result.status}: ${result.text()}`),
+      };
+    }
+    return result.json();
+  });
+  const jsons = await Promise.all(jsonPromises);
+
+  const allembeddings = jsons.map((json) => {
+    const json_obj = json as CreateEmbeddingResponseOllama;
+    return json_obj.embedding;
+  })
+
+  if (allembeddings.length !== texts.length) {
+    console.error(allembeddings);
+    throw new Error('Unexpected number of embeddings');
+  }
+
+  return {
+    embeddings: allembeddings,
+    usage: 0,
+    retries: 0,
+    ms: 0,
+  };
+}
+
+interface CreateEmbeddingResponseOllama {
+  embedding: number[];
+}
+
+export async function fetchEmbeddingBatchOpenAI(texts: string[]) {
   checkForAPIKey();
   const {
     result: json,
@@ -110,6 +167,8 @@ export async function fetchEmbeddingBatch(texts: string[]) {
     ms,
   };
 }
+
+export const fetchEmbeddingBatch = UseOllama ? fetchEmbeddingBatchOllama : fetchEmbeddingBatchOpenAI;
 
 export async function fetchEmbedding(text: string) {
   const { embeddings, ...stats } = await fetchEmbeddingBatch([text]);

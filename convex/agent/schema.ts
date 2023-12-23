@@ -40,7 +40,7 @@ export const memoryTables = {
   }).vectorIndex('embedding', {
     vectorField: 'embedding',
     filterFields: ['playerId'],
-    dimensions: 1536,
+    dimensions: 4096,
   }),
 };
 
